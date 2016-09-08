@@ -16,10 +16,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "tm4c123gh6pm.h"
+#include "hal_init.h"
+#include "time.h"
 
 #define RED_LED      (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 #define BLUE_LED     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 2*4)))
-#define GREEN_LED    (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
+#define GREEN_LED    (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 3*4)))
 //#define YELLOW_LED   (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 #define PB1 	     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
 #define PB2 	     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
@@ -174,27 +176,8 @@ void post(void* pSemaphore)
 //-----------------------------------------------------------------------------
 // Subroutines
 //-----------------------------------------------------------------------------
-// Initialize Hardware
-void initHw()
-{
-    // REQUIRED: Add initialization for blue, red, green, and yellow LEDs
-	//       4 pushbuttons, and uart
-}
-// Approximate busy waiting (in units of microseconds), given a 40 MHz system clock
-void waitMicrosecond(uint32_t us)
-{
-	                                            // Approx clocks per us
-	__asm("WMS_LOOP0:   MOV  R1, #6");          // 1
-    __asm("WMS_LOOP1:   SUB  R1, #1");          // 6
-    __asm("             CBZ  R1, WMS_DONE1");   // 5+1*3
-    __asm("             NOP");                  // 5
-    __asm("             B    WMS_LOOP1");       // 5*3
-    __asm("WMS_DONE1:   SUB  R0, #1");          // 1
-    __asm("             CBZ  R0, WMS_DONE0");   // 1
-    __asm("             B    WMS_LOOP0");       // 1*3
-    __asm("WMS_DONE0:");                        // ---
-                                                // 40 clocks/us + error
-}
+
+
 // REQUIRED: add code to return a value from 0-15 indicating which of 4 PBs are pressed
 uint8_t readPbs()
 {
@@ -333,13 +316,15 @@ int main(void)
 
 	// Initialize hardware
 	initHw();
-
+while (1){
 	// Power-up flash
-	RED_LED = 1;
-	waitMicrosecond(250000);
-	RED_LED = 0;
-	waitMicrosecond(250000);
-
+	RED_LED = 1;	waitMicrosecond(250000);
+	RED_LED = 0;    waitMicrosecond(250000);
+	BLUE_LED = 1;   waitMicrosecond(250000);
+	BLUE_LED = 0;   waitMicrosecond(250000);
+	GREEN_LED = 1;  waitMicrosecond(250000);
+	GREEN_LED = 0;  waitMicrosecond(250000);
+}
 	// Initialize semaphores
 	init(&keyPressed, 0);
 	init(&keyReleased, 1);

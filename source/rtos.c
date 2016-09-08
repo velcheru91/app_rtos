@@ -19,18 +19,35 @@
 
 #define RED_LED      (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 #define BLUE_LED     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 2*4)))
-// REQUIRED: correct these bitbanding references for green and yellow LEDs (temporary to guarantee compilation)
 #define GREEN_LED    (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
-#define YELLOW_LED   (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
+//#define YELLOW_LED   (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
+#define PB1 	     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
+#define PB2 	     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
+#define CRITICAL_SECTION (*((volatile uint32_t *)0xE000E010))
+#define START			 0x00
+#define STOP			 0x07
 //-----------------------------------------------------------------------------
 // 			RTOS Defines and Kernel Variables
 //-----------------------------------------------------------------------------
+//defines
+#define MAX_QUEUE_SIZE 10
+#define STATE_INVALID    0 // no task
+#define STATE_READY      1 // ready to run
+#define STATE_BLOCKED    2 // has run, but now blocked by semaphore
+#define STATE_DELAYED    3 // has run, but now awaiting timer
+#define MAX_TASKS 10       // maximum number of valid tasks
+#define MODE_COOPERATIVE 0
+#define MODE_PREEMPTIVE  1
+
+// variables
+int rtosMode;              // mode
+uint8_t taskCurrent = 0;   // index of last dispatched task
+uint8_t taskCount = 0;     // total number of valid tasks
 
 // function pointer
 typedef void (*_fn)();
 
 // semaphore
-#define MAX_QUEUE_SIZE 10
 struct semaphore
 {
   unsigned int count;
@@ -38,20 +55,7 @@ struct semaphore
   unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
 } *s, keyPressed, keyReleased, flashReq;
 
-// task
-#define STATE_INVALID    0 // no task
-#define STATE_READY      1 // ready to run
-#define STATE_BLOCKED    2 // has run, but now blocked by semaphore
-#define STATE_DELAYED    3 // has run, but now awaiting timer
-
-#define MAX_TASKS 10       // maximum number of valid tasks
-uint8_t taskCurrent = 0;   // index of last dispatched task
-uint8_t taskCount = 0;     // total number of valid tasks
-
-int rtosMode;              // mode
-#define MODE_COOPERATIVE 0
-#define MODE_PREEMPTIVE  1
-
+// task control block
 struct _tcb
 {
   uint8_t state;                 // see STATE_ values above
@@ -62,6 +66,7 @@ struct _tcb
   uint32_t ticks;                // ticks until sleep complete
 } tcb[MAX_TASKS];
 
+// Process stack, each task is allowed with 256 Bytes in RAM at the time of creation
 uint32_t stack[MAX_TASKS][256];
 
 //-----------------------------------------------------------------------------

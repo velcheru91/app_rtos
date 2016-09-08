@@ -231,9 +231,9 @@ void oneshot()
   while(true)
   {
     wait(&flashReq);
-    YELLOW_LED = 1;
+//    YELLOW_LED = 1;
     sleep(1000);
-    YELLOW_LED = 0;
+//    YELLOW_LED = 0;
   }
 }
 
@@ -273,7 +273,7 @@ void readKeys()
     post(&keyPressed);
     if ((buttons & 1) != 0)
     {
-      YELLOW_LED ^= 1;
+//      YELLOW_LED ^= 1;
       RED_LED = 1;
     }
     if ((buttons & 2) != 0)

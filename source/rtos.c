@@ -1,8 +1,9 @@
-// RTOS Framework
-// Jason Losh
+/* ---------------------------VeRTOS Framework---------------------------------*/
+// Initial Creation:		Jason Losh		
+// Update:			Venugopal Velcheru		6/8/2016
 
 //-----------------------------------------------------------------------------
-// Hardware Target
+// 				Hardware Target
 //-----------------------------------------------------------------------------
 
 // Target Platform: EK-TM4C123GXL Evaluation Board
@@ -13,7 +14,7 @@
 // 4 Pushbuttons and 4 LEDs, UART
 
 //-----------------------------------------------------------------------------
-// Device includes, defines, and assembler directives
+// 		  Device includes, defines, and assembler directives
 //-----------------------------------------------------------------------------
 
 #include <stdint.h>
@@ -27,7 +28,7 @@
 #define YELLOW_LED   (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 
 //-----------------------------------------------------------------------------
-// RTOS Defines and Kernel Variables
+// 			RTOS Defines and Kernel Variables
 //-----------------------------------------------------------------------------
 
 // function pointer

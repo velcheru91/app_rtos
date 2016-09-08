@@ -27,7 +27,7 @@
 #define START			 0x00
 #define STOP			 0x07
 //-----------------------------------------------------------------------------
-// 			RTOS Defines and Kernel Variables
+// 			     RTOS Defines
 //-----------------------------------------------------------------------------
 //defines
 #define MAX_QUEUE_SIZE 10
@@ -36,17 +36,17 @@
 #define STATE_BLOCKED    2 // has run, but now blocked by semaphore
 #define STATE_DELAYED    3 // has run, but now awaiting timer
 #define MAX_TASKS 10       // maximum number of valid tasks
-#define MODE_COOPERATIVE 0
-#define MODE_PREEMPTIVE  1
-
+#define MODE_COOPERATIVE 0 // no priority
+#define MODE_PREEMPTIVE  1 // based on task priority
+//-----------------------------------------------------------------------------
+// 		  	 RTOS  Kernel Variables
+//-----------------------------------------------------------------------------
 // variables
 int rtosMode;              // mode
 uint8_t taskCurrent = 0;   // index of last dispatched task
 uint8_t taskCount = 0;     // total number of valid tasks
-
 // function pointer
 typedef void (*_fn)();
-
 // semaphore
 struct semaphore
 {
@@ -54,7 +54,6 @@ struct semaphore
   unsigned int queueSize;
   unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
 } *s, keyPressed, keyReleased, flashReq;
-
 // task control block
 struct _tcb
 {
@@ -65,14 +64,11 @@ struct _tcb
   uint8_t currentPriority;       // used for priority inheritance
   uint32_t ticks;                // ticks until sleep complete
 } tcb[MAX_TASKS];
-
 // Process stack, each task is allowed with 256 Bytes in RAM at the time of creation
 uint32_t stack[MAX_TASKS][256];
-
 //-----------------------------------------------------------------------------
 // RTOS Kernel
 //-----------------------------------------------------------------------------
-
 void rtosInit(int mode)
 {
   uint8_t i;
@@ -87,7 +83,6 @@ void rtosInit(int mode)
   }
   // REQUIRED: systick for 1ms system timer
 }
-
 int rtosScheduler()
 {
   // REQUIRED: Implement prioritization to 8 levels
@@ -103,7 +98,6 @@ int rtosScheduler()
   }
   return task;
 }
-
 bool createProcess(_fn fn, int priority)
 {
   bool ok = false;
@@ -137,12 +131,10 @@ bool createProcess(_fn fn, int priority)
   // REQUIRED: allow tasks switches again
   return ok;
 }
-
 // REQUIRED: modify this function to destroy a process
 void destroyProcess(_fn fn)
 {
 }
-
 void rtosStart()
 {
   // REQUIRED: add code to call the first task to be run, restoring the preloaded context
@@ -151,21 +143,18 @@ void rtosStart()
   // Add code to initialize the SP with tcb[task_current].sp;
   // Restore the stack to run the first process
 }
-
 void init(void* p, int count)
 {
   s = p;
   s->count = count;
   s->queueSize = 0;
 }
-
 // REQUIRED: modify this function to yield execution back to scheduler
 void yield()
 {
 	// push registers, call scheduler, pop registers, return to new function
 
 }
-
 // REQUIRED: modify this function to support 1ms system timer
 // execution yielded back to scheduler until time elapses
 void sleep(uint32_t tick)
@@ -173,29 +162,24 @@ void sleep(uint32_t tick)
 	// push registers, set state to delayed, store timeout, call scheduler, pop registers,
 	// return to new function (separate unrun or ready processing)
 }
-
 // REQUIRED: modify this function to wait a semaphore with priority inheritance
 // return if avail (separate unrun or ready processing), else yield to scheduler
 void wait(void* pSemaphore)
 {
 }
-
 // REQUIRED: modify this function to signal a semaphore is available
 void post(void* pSemaphore)
 {
 }
-
 //-----------------------------------------------------------------------------
 // Subroutines
 //-----------------------------------------------------------------------------
-
 // Initialize Hardware
 void initHw()
 {
     // REQUIRED: Add initialization for blue, red, green, and yellow LEDs
 	//       4 pushbuttons, and uart
 }
-
 // Approximate busy waiting (in units of microseconds), given a 40 MHz system clock
 void waitMicrosecond(uint32_t us)
 {
@@ -211,17 +195,14 @@ void waitMicrosecond(uint32_t us)
     __asm("WMS_DONE0:");                        // ---
                                                 // 40 clocks/us + error
 }
-
 // REQUIRED: add code to return a value from 0-15 indicating which of 4 PBs are pressed
 uint8_t readPbs()
 {
 	return 0;
 }
-
 // ------------------------------------------------------------------------------
 //  Task functions
 // ------------------------------------------------------------------------------
-
 // one task must be ready at all times or the scheduler will fail
 // the idle task is implemented for this purpose
 

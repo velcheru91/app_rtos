@@ -1,22 +1,18 @@
-/* ---------------------------VeRTOS Framework---------------------------------*/
+/* ----------------------------RTOS Framework----------------------------------*/
 // Initial Creation:		Jason Losh		
 // Update:			Venugopal Velcheru		6/8/2016
 
 //-----------------------------------------------------------------------------
 // 				Hardware Target
 //-----------------------------------------------------------------------------
-
 // Target Platform: EK-TM4C123GXL Evaluation Board
 // Target uC:       TM4C123GH6PM
 // System Clock:    40 MHz
-
 // Hardware configuration:
 // 4 Pushbuttons and 4 LEDs, UART
-
 //-----------------------------------------------------------------------------
 // 		  Device includes, defines, and assembler directives
 //-----------------------------------------------------------------------------
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "tm4c123gh6pm.h"
@@ -26,7 +22,6 @@
 // REQUIRED: correct these bitbanding references for green and yellow LEDs (temporary to guarantee compilation)
 #define GREEN_LED    (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 #define YELLOW_LED   (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
-
 //-----------------------------------------------------------------------------
 // 			RTOS Defines and Kernel Variables
 //-----------------------------------------------------------------------------
@@ -342,11 +337,9 @@ void uncooperative()
     yield();
   }
 }
-
 //-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
-
 int main(void)
 {
     bool ok;
@@ -409,5 +402,3 @@ int main(void)
     // so any stack-based code will not function correctly
     yield(); sleep(0); wait(0); post(0);
 }
-
-

@@ -18,13 +18,13 @@
 #include <tm4c123gh6pm.h>
 #include <config.h>
 #include <hal_init.h>
-#include <time.h>
+#include <sys_clk.h>
 #include <kernel.h>
 #include <task.h>
 
 
-#define PB1 	     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
-#define PB2 	     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
+#define PB1 	         (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
+#define PB2 	         (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
 #define CRITICAL_SECTION (*((volatile uint32_t *)0xE000E010))
 #define START			 0x00
 #define STOP			 0x07
@@ -48,7 +48,7 @@ int main(void)
 	initHw();
 
 	// Power-up flash
-//	RED_LED = 1;	__delayMicrosecond(250000);
+	RED_LED = 1;	delayMicrosecond(250000);
 	RED_LED = 0;    delayMicrosecond(250000);
 	BLUE_LED = 1;   delayMicrosecond(250000);
 	BLUE_LED = 0;   delayMicrosecond(250000);

@@ -5,10 +5,10 @@
  *      Author: Venugopal Velcheru
  */
 
-#include "stdint.h"
-#include "tm4c123gh6pm.h"
-#include "hal_init.h"
-#include "time.h"
+#include <stdint.h>
+#include <tm4c123gh6pm.h>
+#include <hal_init.h>
+#include <sys_clk.h>
 // Initialize Hardware
 void initHw()
 {

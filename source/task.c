@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <config.h>
 #include <hal_init.h>
-#include <time.h>
+#include <sys_clk.h>
 #include <kernel.h>
 #include <task.h>
 // ------------------------------------------------------------------------------

@@ -2,17 +2,18 @@
  * time.c
  *
  *  Created on: Sep 8, 2016
- *      Author: code_it
+ *      Author: Venugopal Velcheru
  */
 
 
-#include "stdint.h"
-#include "tm4c123gh6pm.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <tm4c123gh6pm.h>
 #include "hal_init.h"
 #include "time.h"
-
+#include "config.h"
 // Approximate busy waiting (in units of microseconds), given a 40 MHz system clock
-void waitMicrosecond(uint32_t us)
+void delayMicrosecond(uint32_t us)
 {
 	                                            // Approx clocks per us
 	__asm("WMS_LOOP0:   MOV  R1, #6");          // 1

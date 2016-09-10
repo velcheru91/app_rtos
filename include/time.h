@@ -8,9 +8,9 @@
 #ifndef APP_RTOS_INCLUDE_TIME_H_
 #define APP_RTOS_INCLUDE_TIME_H_
 
-#include <stdint.h>
+#define hal_time_usec      1000000
 
-void waitMicrosecond(uint32_t us);
+void delayMicrosecond(uint32_t us);
 
 
 #endif /* APP_RTOS_INCLUDE_TIME_H_ */

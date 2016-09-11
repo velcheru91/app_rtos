@@ -22,9 +22,6 @@
 #include <kernel.h>
 #include <task.h>
 
-
-#define PB1 	         (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
-#define PB2 	         (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
 #define CRITICAL_SECTION (*((volatile uint32_t *)0xE000E010))
 #define START			 0x00
 #define STOP			 0x07
@@ -48,16 +45,16 @@ int main(void)
 	initHw();
 
 	// Power-up flash
-	RED_LED = 1;	delayMicrosecond(250000);
-	RED_LED = 0;    delayMicrosecond(250000);
-	BLUE_LED = 1;   delayMicrosecond(250000);
-	BLUE_LED = 0;   delayMicrosecond(250000);
-	GREEN_LED = 1;  delayMicrosecond(250000);
-	GREEN_LED = 0;  delayMicrosecond(250000);
+//	RED_LED = 1;	delayMicrosecond(250000);
+//	RED_LED = 0;    delayMicrosecond(250000);
+//	BLUE_LED = 1;   delayMicrosecond(250000);
+//	BLUE_LED = 0;   delayMicrosecond(250000);
+//	GREEN_LED = 1;  delayMicrosecond(250000);
+//	GREEN_LED = 0;  delayMicrosecond(250000);
 	// Initialize semaphores
-	init(&keyPressed, 0);
-	init(&keyReleased, 1);
-	init(&flashReq, 5);
+	//init(&keyPressed, 0);
+	//init(&keyReleased, 1);
+	//init(&flashReq, 5);
 
 	// Initialize selected RTOS
 	ok = false;
@@ -66,15 +63,17 @@ int main(void)
 	  pb = readPbs();
 	  if (pb & 4)
 	  {
-	    ok = true;
-	    delayMicrosecond(1000000);
-	    rtosInit(MODE_COOPERATIVE);
+	    //ok = true;
+	    //delayMicrosecond(1000000);
+	    HAL_LPAD_RED_LED_ON;
+	    //rtosInit(MODE_COOPERATIVE);
 	  }
 	  if (pb & 8)
 	  {
-	    ok = true;
-	    delayMicrosecond(1000000);
-	    rtosInit(MODE_PREEMPTIVE);
+	    //ok = true;
+	    //delayMicrosecond(1000000);
+	    HAL_LPAD_RED_LED_OFF;
+	    //rtosInit(MODE_PREEMPTIVE);
 	  }
 	}
 

@@ -49,6 +49,9 @@
 #define HAL_BPAC_SW1_STATUS ((GPIO_PORTD_DATA_R & 0x40)>>6)
 #define HAL_BPAC_SW2_STATUS ((GPIO_PORTD_DATA_R & 0x80)>>7)
 #define HAL_BPAC_SWJ_STATUS ((GPIO_PORTE_DATA_R & 0x10)>>4)
+
+#define PB1 (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
+#define PB2 (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
 //-----------------------------------------------------------------------------
 // LEDs
 //-----------------------------------------------------------------------------

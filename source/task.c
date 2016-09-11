@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <tm4c123gh6pm.h>
 #include <config.h>
 #include <hal_init.h>
 #include <sys_clk.h>
@@ -21,7 +22,8 @@
 // REQUIRED: add code to return a value from 0-15 indicating which of 4 PBs are pressed
 uint8_t readPbs()
 {
-	return 0;
+//	return ((8*(!PB4))+(4*(!PB3))+(2*(!PB2))+(!PB1));
+	return ((8*(!HAL_LPAD_SW1_STATUS))+(4*(!HAL_LPAD_SW2_STATUS)));
 }
 
 void idle()

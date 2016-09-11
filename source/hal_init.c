@@ -9,6 +9,7 @@
 #include <tm4c123gh6pm.h>
 #include <hal_init.h>
 #include <sys_clk.h>
+#include <task.h>
 // Initialize Hardware
 void initHw()
 {
@@ -102,22 +103,27 @@ void initHw()
 	// enable PortE
 	    GPIO_PORTE_DEN_R |= HAL_PORT_ENABLE;
 	//-------------------------------- PORT F-------------------------------------
+	// unlocking PORTD for enabling functionality of all pins
+		GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
+	// enabling the functionality of all pins in PORTD
+		GPIO_PORTF_CR_R = HAL_PORT_ENABLE;
 	// Configure LED and pushbutton pins
 	    GPIO_PORTF_DIR_R |= HAL_GPIO_BIT3 | HAL_GPIO_BIT2 | HAL_GPIO_BIT1;
+	    GPIO_PORTF_DIR_R &= ~(HAL_GPIO_BIT4 | HAL_GPIO_BIT0);
 	// make bit 1 an outputs
 	    GPIO_PORTF_DR2R_R |= 0x1F; //Default
 	// enable internal pull-up for push button
-	    GPIO_PORTF_PUR_R = HAL_GPIO_BIT4 | HAL_GPIO_BIT0;
+	    GPIO_PORTF_PUR_R = (HAL_GPIO_BIT4 | HAL_GPIO_BIT0);
 	// selecting alternate function on PF2 to be PWM
-	    //GPIO_PORTF_AFSEL_R |= HAL_GPIO_BIT2;
+	    GPIO_PORTF_AFSEL_R |= HAL_GPIO_BIT2;
 	// selecting analog mode on PF2
-	    //GPIO_PORTF_AMSEL_R |= HAL_GPIO_BIT2;
+	    GPIO_PORTF_AMSEL_R |= HAL_GPIO_BIT2;
 	// configure PF2 to be PWM output pin
-	    //GPIO_PORTF_PCTL_R |= GPIO_PCTL_PF2_M1PWM6;
+	    GPIO_PORTF_PCTL_R |= GPIO_PCTL_PF2_M1PWM6;
 	// enable LED
 	    GPIO_PORTF_DEN_R |= HAL_PORT_ENABLE;
 	// resetting the port
-	    GPIO_PORTF_DATA_R = HAL_PORT_RESET;
+//	    GPIO_PORTF_DATA_R = HAL_PORT_RESET;
 	//-------------------------------- UART---------------------------------------
 	// turn-off UART0 to allow safe programming
 	    UART0_CTL_R = 0;
@@ -132,9 +138,9 @@ void initHw()
 	// enable TX, RX, and module
 	    UART0_CTL_R = UART_CTL_TXE | UART_CTL_RXE | UART_CTL_UARTEN;
 	// enabling interrupt on UART0 RX
-	    UART0_IM_R = UART_IM_RXIM;
+	    //UART0_IM_R = UART_IM_RXIM;
 	// setting UART1 bit in vector table
-	    NVIC_EN0_R = 1<<5;
+	    //NVIC_EN0_R = 1<<5;
 
 	// turn-off UART1 to allow safe programming
 	    UART1_CTL_R = 0;
@@ -149,9 +155,9 @@ void initHw()
 	// enable TX, RX, and module
 	    UART1_CTL_R = UART_CTL_TXE | UART_CTL_RXE | UART_CTL_UARTEN;
 	// enabling interrupt on UART1 RX
-	    UART1_IM_R = UART_IM_RXIM;
+	    //UART1_IM_R = UART_IM_RXIM;
 	// setting UART1 bit in vector table
-	    NVIC_EN0_R = 1<<6;
+	    //NVIC_EN0_R = 1<<6;
 	//-------------------------------- I2C----------------------------------------
 	//-------------------------------- PWM----------------------------------------
 	// disabling PWM module before configuration as buzzer on BPAC
@@ -199,7 +205,7 @@ void initHw()
 	    SSI2_CR0_R = SSI_CR0_SPH | SSI_CR0_SPO | SSI_CR0_FRF_MOTO | SSI_CR0_DSS_8;
 	// turn on SSI2
 	    SSI2_CR1_R |= SSI_CR1_SSE;
-	    HAL_LCD_CS = 1;
+	    //HAL_LCD_CS = 1;
 	//------------------------------- TIMERS--------------------------------------
 	//-------------------------------- ADC----------------------------------------
 	// select PLL as the time base (not needed, since default value)

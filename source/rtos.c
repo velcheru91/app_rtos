@@ -63,20 +63,23 @@ int main(void)
 	  pb = readPbs();
 	  if (pb & 4)
 	  {
-	    //ok = true;
+	    ok = true;
 	    //delayMicrosecond(1000000);
-	    HAL_LPAD_RED_LED_ON;
+	    //HAL_LPAD_RED_LED_ON;
 	    //rtosInit(MODE_COOPERATIVE);
 	  }
 	  if (pb & 8)
 	  {
-	    //ok = true;
+	    ok = true;
 	    //delayMicrosecond(1000000);
-	    HAL_LPAD_RED_LED_OFF;
+	    //HAL_LPAD_RED_LED_OFF;
 	    //rtosInit(MODE_PREEMPTIVE);
 	  }
 	}
-
+	while(1)
+	{
+		yield();
+	}
 	// Add required idle process
 	ok =  createProcess(idle, 7);
 

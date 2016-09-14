@@ -76,20 +76,17 @@ int main(void)
 	    //rtosInit(MODE_PREEMPTIVE);
 	  }
 	}
-	while(1)
-	{
-		yield();
-	}
 	// Add required idle process
-	ok =  createProcess(idle, 7);
-
+//	ok =  createProcess(idle, 7);
+	ok =  createProcess(red_on, 7);
+	ok =  createProcess(red_off, 7);
 	// Add other processes
-	ok &= createProcess(flash4Hz, 0);
-	ok &= createProcess(lengthyFn, 6);
-	ok &= createProcess(oneshot, 3);
-	ok &= createProcess(readKeys, 1);
-	ok &= createProcess(debounce, 3);
-	ok &= createProcess(uncooperative, 5);
+//	ok &= createProcess(flash4Hz, 0);
+//	ok &= createProcess(lengthyFn, 6);
+//	ok &= createProcess(oneshot, 3);
+//	ok &= createProcess(readKeys, 1);
+//	ok &= createProcess(debounce, 3);
+//	ok &= createProcess(uncooperative, 5);
 
 	// Start up RTOS
 	if (ok)

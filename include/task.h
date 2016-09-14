@@ -9,6 +9,8 @@
 #define APP_RTOS_INCLUDE_TASK_H_
 
 uint8_t readPbs(void);
+void red_on(void);
+void red_off(void);
 void idle(void);
 void flash4Hz(void);
 void oneshot(void);

@@ -36,7 +36,26 @@ void idle()
     yield();
   }
 }
-
+void red_on()
+{
+	while(true)
+	{
+	  RED_LED = 1;
+	  delayMicrosecond(100000);
+	  //RED_LED = 0;
+	  yield();
+	}
+}
+void red_off()
+{
+	while(true)
+	{
+	  RED_LED = 0;
+	  delayMicrosecond(100000);
+	  //BLUE_LED = 1;
+	  yield();
+	}
+}
 void flash4Hz()
 {
   while(true)

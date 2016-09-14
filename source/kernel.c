@@ -31,6 +31,17 @@ struct _tcb
 //-----------------------------------------------------------------------------
 // RTOS Kernel
 //-----------------------------------------------------------------------------
+uint32_t read_sp(void)
+{
+	__asm("		MOV R0, SP");
+	__asm("		BX  LR");
+	return 0;
+}
+void write_sp(uint32_t p)
+{
+	__asm("		MOV SP, R0");
+	__asm("		BX  LR");
+}
 void rtosInit(int mode)
 {
   uint8_t i;
@@ -82,7 +93,9 @@ bool createProcess(_fn fn, int priority)
       tcb[i].state = STATE_READY;
       tcb[i].pid = fn;
       // REQUIRED: preload stack to look like the task had run before
-      tcb[i].sp = stack[i]; // REQUIRED: + offset as needed for the pre-loaded stack
+      stack[i][137] = (uint32_t)tcb[i].pid;
+      stack[i][139] = (uint32_t)tcb[i].pid;
+      tcb[i].sp = &stack[i][128]; // REQUIRED: + offset as needed for the pre-loaded stack
       tcb[i].priority = priority;
       tcb[i].currentPriority = priority;
       // increment task count
@@ -102,6 +115,8 @@ void rtosStart()
   // REQUIRED: add code to call the first task to be run, restoring the preloaded context
   _fn fn;
   taskCurrent = rtosScheduler();
+  fn = (_fn) tcb[taskCurrent].pid;
+  fn();
   // Add code to initialize the SP with tcb[task_current].sp;
   // Restore the stack to run the first process
 }
@@ -119,9 +134,9 @@ void yield()
 	__asm("		PUSH  {R4-R11}");
 	__asm("   	PUSH  {R13}");
 	__asm("   	PUSH  {R14}");
-//	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
-//	taskCurrent = rtosScheduler();
-//	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
+	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+	taskCurrent = rtosScheduler();
+	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
 	__asm("		POP   {R14}");
 	__asm("		POP   {R13}");
 	__asm("		POP   {R11}");

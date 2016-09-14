@@ -1,0 +1,737 @@
+http://www.rt-labs.com/refman/rt-kernel/
+// RTOS Framework
+//Submitted by VENUGOPAL VELCHERU 1000988917 	Date: 3/16/2015
+//-----------------------------------------------------------------------------
+// Hardware Target
+//-----------------------------------------------------------------------------
+// Target Platform: EK-TM4C123GXL Evaluation Board
+// Target uC:       TM4C123GH6PM
+// System Clock:    40 MHz
+// Hardware configuration:
+// 4 Pushbuttons and 4 LEDs, UART
+//-----------------------------------------------------------------------------
+// Device includes, defines, and assembler directives
+//-----------------------------------------------------------------------------
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include "tm4c123gh6pm.h"
+
+#define RED_LED          (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
+#define BLUE_LED         (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 2*4)))
+// REQUIRED: correct these bitbanding references for green and yellow LEDs (temporary to guarantee compilation)
+#define GREEN_LED        (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 3*4)))
+#define YELLOW_LED       (*((volatile uint32_t *)(0x42000000 + (0x400053FC-0x40000000)*32 + 3*4)))
+
+#define PB1 			 (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*0)))
+#define PB2 			 (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 4*4)))
+#define PB3 			 (*((volatile uint32_t *)(0x42000000 + (0x400243FC-0x40000000)*32 + 4*1)))
+#define PB4 			 (*((volatile uint32_t *)(0x42000000 + (0x400243FC-0x40000000)*32 + 4*2)))
+#define CRITICAL_SECTION (*((volatile uint32_t *)0xE000E010))
+#define START			 0x00
+#define STOP			 0x07
+
+//-----------------------------------------------------------------------------
+// RTOS Defines and Kernel Variables
+//-----------------------------------------------------------------------------
+// defines
+#define MAX_QUEUE_SIZE   10
+#define STATE_INVALID    0 // no task
+#define STATE_READY      1 // ready to run
+#define STATE_BLOCKED    2 // has run, but now blocked by semaphore
+#define STATE_DELAYED    3 // has run, but now awaiting timer
+#define MAX_TASKS 10       // maximum number of valid tasks
+#define MODE_COOPERATIVE 0
+#define MODE_PREEMPTIVE  1
+
+//variables
+int rtosMode;              // mode
+uint8_t taskCurrent   = 0;   // index of last dispatched task
+uint8_t taskCount     = 0;     // total number of valid tasks
+uint8_t MAX_P_LEVEL   = 0;
+
+// function pointer
+typedef void (*_fn)();
+
+typedef struct {
+  uint32_t load;
+  uint32_t count;
+  bool running;
+} tmr_t;
+
+tmr_t T[MAX_TIMERS];
+#define MAX_TIMERS          2
+#define TIMER_COUNT(_timer)  (_timer.count + 0)
+#define TIMER_RESET(_timer)  _timer.load = 0        \
+                             _timer.count = 0       \
+                             _timer.running = FALSE
+#define TIMER_STOP(_timer)   _timer.running = FALSE
+#define TIMER_START(_timer)  _timer.running = TRUE
+#define TIMER_LOAD(_timer,_load) _timer.load = _load  \
+                                 _timer.count = _load
+
+// semaphore
+struct semaphore
+{
+  unsigned int count;
+  unsigned int queueSize;
+  unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
+} *s, keyPressed, keyReleased, flashReq, display;
+
+// task control block
+struct _tcb
+{
+  uint8_t state;                 // see STATE_ values above
+  void *pid;                     // used to uniquely identify process
+  void *sp;                      // location of stack pointer for process
+  uint8_t priority;              // 0=highest, 7=lowest
+  uint8_t currentPriority;       // used for priority inheritance
+  uint32_t ticks;                // ticks until sleep complete
+} tcb[MAX_TASKS];
+
+// process stack, each task is allocated with 256 Bytes in RAM
+uint32_t stack[MAX_TASKS][256];
+//-----------------------------------------------------------------------------
+// RTOS Kernel
+//-----------------------------------------------------------------------------
+void SysTick_Init(void)
+{
+	NVIC_ST_CTRL_R =0;
+	NVIC_ST_RELOAD_R = 0x9C3F; //Frequency = Clock frequency/[n(Value to be loaded into RELOAD register)+1]
+	NVIC_ST_CURRENT_R = 0;		 // For systick to fire interrupt at 1 ms rate, n = 0x9C3F
+	NVIC_ST_CTRL_R = 0x07;
+	
+// Initialize user defined timers
+//TIMER_RESET(T[0]);TIMER_RESET(T[1]);TIMER_RESET(T[2]);
+//TIMER_LOAD(T[0],1000000);TIMER_LOAD(T[1],1000000);TIMER_LOAD(T[2],1000000);
+//TIMER_START(T[0]);TIMER_START(T[1]);TIMER_START(T[2]);
+// Initialize user defined timer (include only one)
+	for (itr = 0; itr<=MAX_TIMERS; itr--)
+	{
+		TIMER_RESET(T[itr]);TIMER_LOAD(T[itr],1000000);TIMER_START(T[itr]);
+	}
+}
+uint32_t read_sp(void)
+{
+	__asm("		MOV R0, SP");
+	__asm("		BX  LR");
+	return 0;
+}
+void write_sp(uint32_t p)
+{
+	__asm("		MOV SP, R0");
+	__asm("		BX  LR");
+}
+int rtosScheduler()
+{
+  // REQUIRED: Implement prioritization to 8 levels
+  bool ok;
+  static uint8_t task = 0xFF;
+  uint8_t i,ii,LEAST_PRIORITY=0,LEAST_P_TASK;
+  ok = false;
+  while (!ok)
+  {
+    for (i=0;i<MAX_TASKS;i++)
+    {
+    	if (tcb[i].state == STATE_READY)
+    		if (tcb[i].priority > LEAST_PRIORITY)
+    		{
+    			LEAST_PRIORITY = tcb[i].priority;
+    			LEAST_P_TASK = i;
+    		}
+    }
+    task++;
+    if (task >= MAX_TASKS)
+    	task = 0;
+    if ((tcb[task].state == STATE_READY))
+    {
+    	if (tcb[task].currentPriority > 0)
+    	    	{
+    	    		tcb[task].currentPriority--;
+    	    		if (tcb[task].currentPriority == 0)
+    	    			ok = true;
+    	    	}
+    	else if (tcb[task].currentPriority == 0)//tcb[task].priority)
+    	{
+    		if (tcb[LEAST_P_TASK].currentPriority == 0)
+    		{
+    			for(ii=0;ii<MAX_TASKS;ii++)
+    			{
+    				if (tcb[ii].state == STATE_READY && tcb[ii].currentPriority == 0)
+    					tcb[ii].currentPriority = tcb[ii].priority + 1;
+    			}
+    			ok = true;
+    		}
+    		ok = true;
+    	}
+
+    }
+  }
+  return task;
+}
+void SysTick_interrupt()
+  {
+//  if (T[0].running && (T[0].count>0)){T[0].count--;}
+//  if(T[0].count == 0){TIMER_LOAD(T[0],1000000);}
+//  if (T[1].running && (T[1].count>0)){T[1].count--;}
+//  if(T[1].count == 0){TIMER_LOAD(T[1],1000000);}
+	for (itr= 0;itr<=MAX_TIMERS;itr--)
+	{
+		if(T[itr].running && (T[itr].count>0)){T[itr].count--;}
+		if(T[itr].count == 0){TIMER_LOAD(T[itr],1000000);}
+	}
+	int i;
+	if (rtosMode == MODE_COOPERATIVE)
+	{
+		for (i = 0; i < MAX_TASKS; i++)
+		{
+			if (tcb[i].state == STATE_DELAYED)
+			{
+				tcb[i].ticks --;
+				if (tcb[i].ticks == 0)
+				{
+	    		tcb[i].state = STATE_READY;
+	    		//tcb[i].currentPriority = tcb[i].priority;
+				}
+			}
+		}
+	}
+	if (rtosMode == MODE_PREEMPTIVE)
+	{
+		    //__asm("		PUSH  {LR}");
+			//__asm("		PUSH  {R4-R11}");
+			//__asm("   	PUSH  {R13}");
+			//__asm("   	PUSH  {R14}");
+			for (i = 0; i < MAX_TASKS; i++)
+					{
+						if (tcb[i].state == STATE_DELAYED)
+						{
+							tcb[i].ticks --;
+							if (tcb[i].ticks == 0)
+							{
+				    		tcb[i].state = STATE_READY;
+				    		//tcb[i].currentPriority = tcb[i].priority;
+							}
+						}
+					}
+			//tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+			//taskCurrent = rtosScheduler();
+			//write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
+			//__asm("		POP   {R14}");
+			//__asm("		POP   {R13}");
+			//__asm("		POP   {R11}");
+			//__asm("		POP   {R10}");
+			///__asm("		POP   {R9}");
+			//__asm("		POP   {R8}");
+			//__asm("		POP   {R7}");
+			//__asm("		POP   {R6}");
+			//__asm("		POP   {R5}");
+			//__asm("		POP   {R4}");
+			//__asm("		POP   {LR}");
+	}
+  }
+void rtosInit(int mode)
+{
+  uint8_t i;
+  rtosMode = mode;
+  // no tasks running
+  taskCount = 0;
+  // clear out tcb records
+  for (i = 0; i < MAX_TASKS; i++)
+  {
+    tcb[i].state = STATE_INVALID;
+    tcb[i].pid = 0;
+
+  }
+  // REQUIRED: systick for 1ms system timer
+  SysTick_Init();
+}
+bool createProcess(_fn fn, int priority)
+{
+  bool ok = false;
+  uint8_t i = 0;
+  bool found = false;
+  //CRITICAL_SECTION = START;
+  // REQUIRED: take steps to ensure a task switch cannot occur
+  // save starting address if room in task list
+  if (taskCount < MAX_TASKS)
+  {
+    // make sure fn not already in list (prevent reentrancy)
+    while (!found && (i < MAX_TASKS))
+    {
+      found = (tcb[i++].pid ==  fn);
+    }
+    if (!found)
+    {
+      // find first available tcb record
+      i = 0;
+      while (tcb[i].state != STATE_INVALID) {i++;}
+      tcb[i].state = STATE_READY;
+      tcb[i].pid = fn;
+      // REQUIRED: preload stack to look like the task had run before
+      stack[i][137] = (int) tcb[i].pid;
+      stack[i][139] = (int) tcb[i].pid;
+      tcb[i].sp = (&stack[i][128]); // REQUIRED: + offset as needed for the pre-loaded stack
+      tcb[i].priority = priority;
+      tcb[i].currentPriority = priority+1;
+      // increment task count
+      taskCount++;
+      ok = true;
+    }
+  }
+  //CRITICAL_SECTION = STOP;
+  // REQUIRED: allow tasks switches again
+  return ok;
+}
+// REQUIRED: modify this function to destroy a process
+void destroyProcess(_fn fn)
+{
+	//Critical Section
+	//CRITICAL_SECTION = START;
+	s=&flashReq;
+	bool found = false;
+	uint8_t i=0,j=0,k=0;
+	while(!found && (i < MAX_TASKS))
+	{
+		found = (tcb[i++].pid ==  fn);
+	}
+	i--;
+	tcb[i].state = STATE_INVALID;
+	tcb[i].pid = 0x00;
+	if (found)
+	{
+		for(j=0;j<(s->queueSize);j++)
+		{
+			if(s->processQueue[j] == i)
+			{
+				tcb[i].state = STATE_INVALID;
+				for(k=j;k< (s->queueSize);k++)
+					s->processQueue[k] = s->processQueue[k+1];
+				s->queueSize--;
+			}
+		}
+	}
+	//CRITICAL_SECTION = STOP;
+}
+void rtosStart()
+{
+  taskCurrent = rtosScheduler();
+  putsUart0("\r\nBoot Complete");
+  write_sp((uint32_t) (tcb[taskCurrent].sp));// Add code to initialize the SP with tcb[taskCurrent].sp;
+  _fn fn;
+  fn = (_fn) tcb[taskCurrent].pid; // Restore the stack to run the first process
+  fn();
+}
+void init(void* p, int count)
+{
+  s = p;
+  s->count = count;
+  s->queueSize = 0;
+}
+// REQUIRED: modify this function to yield execution back to scheduler
+void yield()
+{
+	CRITICAL_SECTION = START;
+	// push registers, call scheduler, pop registers, return to new function
+	__asm("		PUSH  {LR}");
+	__asm("		PUSH  {R4-R11}");
+	__asm("   	PUSH  {R13}");
+	__asm("   	PUSH  {R14}");
+	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+	taskCurrent = rtosScheduler();
+	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
+	__asm("		POP   {R14}");
+	__asm("		POP   {R13}");
+	__asm("		POP   {R11}");
+	__asm("		POP   {R10}");
+	__asm("		POP   {R9}");
+	__asm("		POP   {R8}");
+	__asm("		POP   {R7}");
+	__asm("		POP   {R6}");
+	__asm("		POP   {R5}");
+	__asm("		POP   {R4}");
+	__asm("		POP   {LR}");
+	//__asm("		POP	  {R6}");
+	//__asm("		POP	  {R6}");
+	//__asm("		BX	  LR");
+	CRITICAL_SECTION = STOP;
+}
+// REQUIRED: modify this function to support 1ms system timer
+// execution yielded back to scheduler until time elapses
+void sleep(uint32_t tick)
+{
+	CRITICAL_SECTION = START;
+	// push registers, set state to delayed, store timeout, call scheduler, pop registers,
+	// return to new function (separate unrun or ready processing)
+	tcb[taskCurrent].ticks = tick;
+	__asm("		PUSH  {LR}");
+	__asm("		PUSH  {R4-R11}");
+	__asm("   	PUSH  {R13}");
+	__asm("   	PUSH  {R14}");
+	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+	tcb[taskCurrent].state = STATE_DELAYED;
+
+	taskCurrent = rtosScheduler();
+	write_sp((uint32_t) (tcb[taskCurrent].sp)); // restoring stack pointer
+	__asm("		POP   {R14}");
+	__asm("		POP   {R13}");
+	__asm("		POP   {R11}");
+	__asm("		POP   {R10}");
+	__asm("		POP   {R9}");
+	__asm("		POP   {R8}");
+	__asm("		POP   {R7}");
+	__asm("		POP   {R6}");
+	__asm("		POP   {R5}");
+	__asm("		POP   {R4}");
+	__asm("		POP   {LR}");
+	CRITICAL_SECTION = STOP;
+}
+// REQUIRED: modify this function to wait a semaphore with priority inheritance
+// return if avail (separate unrun or ready processing), else yield to scheduler
+void wait(void* pSemaphore)
+{
+	CRITICAL_SECTION = START;
+	s = pSemaphore;
+	__asm("		PUSH  {LR}");
+	__asm("		PUSH  {R4-R11}");
+	__asm("   	PUSH  {R13}");
+	__asm("   	PUSH  {R14}");
+	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+	if (s->count > 0)
+		s->count--;
+	else
+	{
+		s->processQueue[(s->queueSize)++] = taskCurrent;// Queue task
+		tcb[taskCurrent].state = STATE_BLOCKED;
+		taskCurrent = rtosScheduler();
+	}
+	write_sp((uint32_t) (tcb[taskCurrent].sp)); // restoring stack pointer
+	__asm("		POP   {R14}");
+	__asm("		POP   {R13}");
+	__asm("		POP   {R11}");
+	__asm("		POP   {R10}");
+	__asm("		POP   {R9}");
+	__asm("		POP   {R8}");
+	__asm("		POP   {R7}");
+	__asm("		POP   {R6}");
+	__asm("		POP   {R5}");
+	__asm("		POP   {R4}");
+	__asm("		POP   {LR}");
+	CRITICAL_SECTION = STOP;
+}
+// REQUIRED: modify this function to signal a semaphore is available
+void post(void* pSemaphore)
+{
+	int i;
+	s = pSemaphore;
+	s->count++;
+	if(s->queueSize>0)
+	{
+		s->count--;
+		i = s->processQueue[0];
+		tcb[i].state = STATE_READY;
+		tcb[i].currentPriority = tcb[i].priority;
+		for (i=0;i<(s->queueSize)-1;i++)
+			s->processQueue[i] = s->processQueue[i+1];
+		s->queueSize--;
+	}
+}
+//-----------------------------------------------------------------------------
+// Subroutines
+//-----------------------------------------------------------------------------
+// Initialize Hardware
+void initHw()
+{
+	// Configure HW to work with 16 MHz XTAL, PLL enabled, system clock of 40 MHz
+	    SYSCTL_RCC_R = SYSCTL_RCC_XTAL_16MHZ | SYSCTL_RCC_OSCSRC_MAIN | SYSCTL_RCC_USESYSDIV | (4 << SYSCTL_RCC_SYSDIV_S);
+
+	    // Set GPIO ports to use APB (not needed since default configuration -- for clarity)
+	    SYSCTL_GPIOHBCTL_R = 0;
+
+	    // Enable GPIO port F peripherals
+	    SYSCTL_RCGC2_R = SYSCTL_RCGC2_GPIOF | SYSCTL_RCGC2_GPIOE | SYSCTL_RCGC2_GPIOA | SYSCTL_RCGC2_GPIOB;
+
+	    // Configure LED and pushbutton pins
+	    GPIO_PORTF_LOCK_R = 0x4C4F434B ;
+	    GPIO_PORTF_CR_R = 0X1;
+	    GPIO_PORTF_DIR_R = 0x0E;  // bits 1 and 3 are outputs, other pins are inputs
+	    GPIO_PORTF_DR2R_R = 0x0E; // set drive strength to 2mA (not needed since default configuration -- for clarity)
+	    GPIO_PORTF_DEN_R = 0x1F;  // enable LEDs and pushbuttons
+	    GPIO_PORTF_PUR_R = 0x11;  // enable internal pull-up for push button
+
+	    GPIO_PORTE_DIR_R = 0x0;  // bits 1 and 3 are outputs, other pins are inputs
+	    GPIO_PORTE_DR2R_R = 0x06; // set drive strength to 2mA (not needed since default configuration -- for clarity)
+	    GPIO_PORTE_DEN_R = 0x06;  // enable LEDs and pushbuttons
+	    GPIO_PORTE_PUR_R = 0x06;
+
+	    GPIO_PORTB_DIR_R = 0x8;
+	    GPIO_PORTB_DR2R_R = 0x8;
+	    GPIO_PORTB_DEN_R = 0x8;
+	    // Configuring uart
+	    // REQUIRED: Add initialization for blue, red, green, and yellow LEDs
+	    //       4 pushbuttons, and uart
+	    // Configure UART0 pins
+	    SYSCTL_RCGCUART_R |= SYSCTL_RCGCUART_R0;         // turn-on UART0, leave other uarts in same status
+	    GPIO_PORTA_DEN_R |= 3;                           // default, added for clarity
+	    GPIO_PORTA_AFSEL_R |= 3;                         // default, added for clarity
+	    GPIO_PORTA_PCTL_R = GPIO_PCTL_PA1_U0TX | GPIO_PCTL_PA0_U0RX;
+	    // Configure UART0 to 115200 baud, 8N1 format (must be 3 clocks from clock enable and config writes)
+	    UART0_CTL_R = 0;                                 // turn-off UART0 to allow safe programming
+	    UART0_CC_R = UART_CC_CS_SYSCLK;                  // use system clock (40 MHz)
+	    UART0_IBRD_R = 21;                               // r = 40 MHz / (Nx115.2kHz), set floor(r)=21, where N=16
+	    UART0_FBRD_R = 45;                               // round(fract(r)*64)=45
+	    UART0_LCRH_R = UART_LCRH_WLEN_8; // configure for 8N1 w/o FIFO
+	    UART0_CTL_R = UART_CTL_TXE | UART_CTL_RXE | UART_CTL_UARTEN; // enable TX, RX, and module
+	    UART0_IM_R = UART_IM_RXIM;                       // turn-on RX interrupt
+	    NVIC_EN0_R = 1<<5;                               // turn-on interrupt 21 (UART0)
+}
+// Approximate busy waiting (in units of microseconds), given a 40 MHz system clock
+void waitMicrosecond(uint32_t us)
+{
+	                                            // Approx clocks per us
+	__asm("WMS_LOOP0:   MOV  R1, #6");          // 1
+    __asm("WMS_LOOP1:   SUB  R1, #1");          // 6
+    __asm("             CBZ  R1, WMS_DONE1");   // 5+1*3
+    __asm("             NOP");                  // 5
+    __asm("             B    WMS_LOOP1");       // 5*3
+    __asm("WMS_DONE1:   SUB  R0, #1");          // 1
+    __asm("             CBZ  R0, WMS_DONE0");   // 1
+    __asm("             B    WMS_LOOP0");       // 1*3
+    __asm("WMS_DONE0:");                        // ---
+                                                // 40 clocks/us + error
+}
+// Blocking function that writes a serial character when the UART buffer is not full
+void putcUart0(char c)
+{
+	while (UART0_FR_R & UART_FR_TXFF);
+	UART0_DR_R = c;
+}
+// Blocking function that writes a string when the UART buffer is not full
+void putsUart0(char* str)
+{
+	int i;
+    for (i = 0; i < strlen(str); i++)
+	  putcUart0(str[i]);
+}
+void char_rx()
+{
+	while (true)
+	{
+	wait(&display);
+	char c = UART0_DR_R;
+	}
+}
+void Uart0Isr()
+{
+	char c = UART0_DR_R;
+	putcUart0(c);
+}
+// REQUIRED: add code to return a value from 0-15 indicating which of 4 PBs are pressed
+uint8_t readPbs()
+{
+
+	return ((8*(!PB4))+(4*(!PB3))+(2*(!PB2))+(!PB1));
+}
+// ------------------------------------------------------------------------------
+//  Task functions
+// ------------------------------------------------------------------------------
+// one task must be ready at all times or the scheduler will fail
+// the idle task is implemented for this purpose
+void idle()
+{
+  while(true)
+  {
+    BLUE_LED = 1;
+    waitMicrosecond(1000);
+    BLUE_LED = 0;
+    yield();
+  }
+}
+void red_blink()
+{
+	while(true)
+	{
+	  if (TIMER_COUNT(T1) <= 500000)
+	  RED_LED = 1;
+	  else
+	  RED_LED = 0;
+	  yield();
+	}
+}
+void blue_blink()
+{
+	while(true)
+	{
+	  if (TIMER_COUNT(T1) <= 500000)
+	  BLUE_LED = 0;
+	  else
+	  BLUE_LED = 1;
+	  yield();
+	}
+}
+void flash4Hz()
+{
+  while(true)
+  {
+    GREEN_LED ^= 1;
+    sleep(125);
+  }
+}
+void oneshot()
+{
+  while(true)
+  {
+    wait(&flashReq);
+    YELLOW_LED = 1;
+    sleep(1000);
+    YELLOW_LED = 0;
+  }
+}
+void partOfLengthyFn()
+{
+  // represent some lengthy operation
+  waitMicrosecond(1000);
+  // give another process a chance
+  yield();
+}
+void lengthyFn()
+{
+  uint16_t i;
+  while(true)
+  {
+    for (i = 0; i < 4000; i++)
+    {
+      partOfLengthyFn();
+    }
+    RED_LED ^= 1;
+  }
+}
+void readKeys()
+{
+  uint8_t buttons;
+  while(true)
+  {
+    wait(&keyReleased);
+    buttons = 0;
+    while (buttons == 0)
+    {
+      buttons = readPbs();
+      yield();
+    }
+    post(&keyPressed);
+    if ((buttons & 1) != 0)
+    {
+      YELLOW_LED ^= 1;
+      RED_LED = 1;
+    }
+    if ((buttons & 2) != 0)
+    {
+      post(&flashReq);
+      RED_LED = 0;
+    }
+    if ((buttons & 4) != 0)
+    {
+      createProcess(flash4Hz, 0);
+    }
+    if ((buttons & 8) != 0)
+    {
+      destroyProcess(flash4Hz);
+	}
+    yield();
+  }
+}
+void debounce()
+{
+  uint8_t count;
+  while(true)
+  {
+    wait(&keyPressed);
+    count = 10;
+    while (count != 0)
+    {
+      sleep(10);
+      if (readPbs() == 0)
+        count--;
+      else
+        count = 10;
+    }
+    post(&keyReleased);
+  }
+}
+void uncooperative()
+{
+  while(true)
+  {
+    while (readPbs() == 8)
+    {
+    }
+    yield();
+  }
+}
+
+//-----------------------------------------------------------------------------
+// Main
+//-----------------------------------------------------------------------------
+int main(void)
+{
+    bool ok;
+    uint8_t pb;
+
+	// Initialize hardware
+	initHw();
+	//SysTick_Init();
+	// Power-up flash
+	RED_LED = 1;
+	waitMicrosecond(250000);
+	RED_LED = 0;
+	waitMicrosecond(250000);
+
+	// Initialize semaphores
+	init(&keyPressed, 0);
+	init(&keyReleased, 1);
+	init(&flashReq, 5);
+	init(&display, 0);
+	// Initialize selected RTOS
+	ok = false;
+	while (!ok)
+	{
+	  pb = readPbs();
+	  if (pb & 4) // Push button 4 for selecting COOPERATIVE RTOS MODE
+	  {
+	    ok = true;
+	    waitMicrosecond(100000);
+	    rtosInit(MODE_COOPERATIVE);
+	  }
+	  if (pb & 8) // Push button 8 for selecting PREEMPTIVE RTOS MODE
+	  {
+	    ok = true;
+	    waitMicrosecond(100000);
+	    rtosInit(MODE_PREEMPTIVE);
+	  }
+	}
+
+	// Add required idle process
+	ok =  createProcess(idle, 7);
+		// Add other processes
+		ok &= createProcess(flash4Hz, 0);
+		ok &= createProcess(lengthyFn, 6);
+		ok &= createProcess(oneshot, 3);
+		ok &= createProcess(readKeys, 1);
+		ok &= createProcess(debounce, 3);
+		ok &= createProcess(uncooperative, 5);
+	putsUart0("\r\n--------------              WELCOME				 ----------------\r\n");
+	putsUart0("Selected RTOS Initiating.......\r\n");
+	putsUart0("\r\n");
+	// Start up RTOS
+	if (ok)
+	  rtosStart(); // never returns
+	else
+	  RED_LED = 1;
+	return 0;
+    // don't delete this unreachable code
+    // if a function is only called once in your code, it will be
+    // accessed with two goto instructions instead of call-return,
+    // so any stack-based code will not function correctly
+    yield(); sleep(0); wait(0); post(0);
+}

@@ -5,11 +5,24 @@
  *      Author: Venugopal Velcheru
  */
 
+#ifndef _STDINT_H_
 #include <stdint.h>
+#endif
+#ifndef _STDBOOL
+#include <stdbool.h>
+#endif
+#ifndef __TM4C123GH6PM_H__
 #include <tm4c123gh6pm.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_HAL_INIT_H_
 #include <hal_init.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_SYS_CLK_H_
 #include <sys_clk.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_TASK_H_
 #include <task.h>
+#endif
 // Initialize Hardware
 void initHw()
 {

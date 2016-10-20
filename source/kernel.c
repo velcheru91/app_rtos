@@ -6,10 +6,21 @@
  *
  *
  */
+#ifndef _STDINT_H_
 #include <stdint.h>
+#endif
+#ifndef _STDBOOL
 #include <stdbool.h>
+#endif
+#ifndef __TM4C123GH6PM_H__
+#include <tm4c123gh6pm.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_CONFIG_H_
 #include <config.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_KERNEL_H_
 #include <kernel.h>
+#endif
 //-----------------------------------------------------------------------------
 // 		  	 RTOS  Kernel Variables
 //-----------------------------------------------------------------------------
@@ -28,6 +39,17 @@ struct _tcb
   uint8_t currentPriority;       // used for priority inheritance
   uint32_t ticks;                // ticks until sleep complete
 } tcb[MAX_TASKS];
+
+// semaphore
+struct semaphore
+{
+  unsigned int count;
+  unsigned int queueSize;
+  unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
+} *s, keyPressed, keyReleased, flashReq;
+
+// Process stack, each task is allowed with 256 Bytes in RAM at the time of creation
+extern uint32_t stack[MAX_TASKS][256];
 //-----------------------------------------------------------------------------
 // RTOS Kernel
 //-----------------------------------------------------------------------------

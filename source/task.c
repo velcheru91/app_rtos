@@ -5,17 +5,47 @@
  *      Author: Venugopal Velcheru
  */
 
+#ifndef _STDINT_H_
 #include <stdint.h>
+#endif
+#ifndef _STDBOOL
 #include <stdbool.h>
+#endif
+#ifndef __TM4C123GH6PM_H__
 #include <tm4c123gh6pm.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_CONFIG_H_
 #include <config.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_HAL_INIT_H_
 #include <hal_init.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_SYS_CLK_H_
 #include <sys_clk.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_KERNEL_H_
 #include <kernel.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_TASK_H_
 #include <task.h>
-// ------------------------------------------------------------------------------
-//  Task functions
-// ------------------------------------------------------------------------------
+#endif
+
+//-----------------------------------------------------------------------------
+// 		  	 Task Variables
+//-----------------------------------------------------------------------------
+// Process stack, each task is allowed with 256 Bytes in RAM at the time of creation
+uint32_t stack[MAX_TASKS][256];
+
+// semaphore
+extern struct semaphore
+{
+  unsigned int count;
+  unsigned int queueSize;
+  unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
+} *s, keyPressed, keyReleased, flashReq;
+//-----------------------------------------------------------------------------
+// 			 Task functions
+//------------------------------------------------------------------------------
 // one task must be ready at all times or the scheduler will fail
 // the idle task is implemented for this purpose
 

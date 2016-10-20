@@ -17,14 +17,6 @@
 // function pointer
 typedef void (*_fn)();
 
-// semaphore
-struct semaphore
-{
-  unsigned int count;
-  unsigned int queueSize;
-  unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
-} *s, keyPressed, keyReleased, flashReq;
-
 
 void rtosInit(int mode);
 int rtosScheduler();

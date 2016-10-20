@@ -6,12 +6,24 @@
  */
 
 
+#ifndef _STDINT_H_
 #include <stdint.h>
+#endif
+#ifndef _STDBOOL
 #include <stdbool.h>
+#endif
+#ifndef __TM4C123GH6PM_H__
 #include <tm4c123gh6pm.h>
-#include <hal_init.h>
-#include <sys_clk.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_CONFIG_H_
 #include <config.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_HAL_INIT_H_
+#include <hal_init.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_SYS_CLK_H_
+#include <sys_clk.h>
+#endif
 // Approximate busy waiting (in units of microseconds), given a 40 MHz system clock
 void delayMicrosecond(uint32_t us)
 {

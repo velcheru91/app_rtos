@@ -17,6 +17,11 @@
 // function pointer
 typedef void (*_fn)();
 
+// Process stack, each task is allowed with 256 Bytes in RAM at the time of creation
+extern uint32_t stack[MAX_TASKS][256];
+
+// semaphore
+extern struct semaphore *s, keyPressed, keyReleased, flashReq;
 
 void rtosInit(int mode);
 int rtosScheduler();

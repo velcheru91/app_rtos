@@ -33,16 +33,7 @@
 //-----------------------------------------------------------------------------
 // 		  	 Task Variables
 //-----------------------------------------------------------------------------
-// Process stack, each task is allowed with 256 Bytes in RAM at the time of creation
-uint32_t stack[MAX_TASKS][256];
 
-// semaphore
-extern struct semaphore
-{
-  unsigned int count;
-  unsigned int queueSize;
-  unsigned int processQueue[MAX_QUEUE_SIZE]; // store task index here
-} *s, keyPressed, keyReleased, flashReq;
 //-----------------------------------------------------------------------------
 // 			 Task functions
 //------------------------------------------------------------------------------

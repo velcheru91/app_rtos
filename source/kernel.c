@@ -195,8 +195,8 @@ void post(void* pSemaphore)
 
 void SysTick_interrupt(void)
 {
-	if ((++taskCurrent) == taskCount)
-		taskCurrent = 0;
-
+	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+	taskCurrent = rtosScheduler();
+	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
 }
 

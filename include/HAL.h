@@ -5,8 +5,8 @@
  *      Author: code_it
  */
 
-#ifndef APP_RTOS_INCLUDE_HAL_INIT_H_
-#define APP_RTOS_INCLUDE_HAL_INIT_H_
+#ifndef APP_RTOS_INCLUDE_HAL_H_
+#define APP_RTOS_INCLUDE_HAL_H_
 
 //-----------------------------------------------------------------------------
 // Hardware Abstraction Layer Initialization
@@ -80,8 +80,11 @@
 #define BLUE_LED     (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 2*4)))
 #define GREEN_LED    (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 3*4)))
 //#define YELLOW_LED   (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
+#define hal_time_usec      1000000
 
+void delayMicrosecond(uint32_t us);
+void SysTick_Init(void);
 void initHw(void);
 
 
-#endif /* APP_RTOS_INCLUDE_HAL_INIT_H_ */
+#endif /* APP_RTOS_INCLUDE_HAL_H_ */

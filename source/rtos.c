@@ -26,10 +26,7 @@
 #include <config.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_HAL_INIT_H_
-#include <hal_init.h>
-#endif
-#ifndef APP_RTOS_INCLUDE_SYS_CLK_H_
-#include <sys_clk.h>
+#include <HAL.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_KERNEL_H_
 #include <kernel.h>
@@ -92,6 +89,7 @@ int main(void)
 	    //rtosInit(MODE_PREEMPTIVE);
 	  }
 	}
+	rtosInit(MODE_COOPERATIVE);
 	// Add required idle process
 //	ok =  createProcess(idle, 7);
 	ok =  createProcess(red_on, 7);

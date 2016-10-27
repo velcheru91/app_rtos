@@ -18,10 +18,7 @@
 #include <config.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_HAL_INIT_H_
-#include <hal_init.h>
-#endif
-#ifndef APP_RTOS_INCLUDE_SYS_CLK_H_
-#include <sys_clk.h>
+#include <HAL.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_KERNEL_H_
 #include <kernel.h>
@@ -63,8 +60,8 @@ void red_on()
 	{
 	  RED_LED = 1;
 	  delayMicrosecond(100000);
-	  //RED_LED = 0;
-	  yield();
+	  //RED_LED = 0;s
+	  //yield();
 	}
 }
 void red_off()
@@ -74,7 +71,7 @@ void red_off()
 	  RED_LED = 0;
 	  delayMicrosecond(100000);
 	  //BLUE_LED = 1;
-	  yield();
+	  //yield();
 	}
 }
 void flash4Hz()

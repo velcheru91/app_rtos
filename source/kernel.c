@@ -76,7 +76,18 @@ void rtosInit(int mode)
     tcb[i].state = STATE_INVALID;
     tcb[i].pid = 0;
   }
-  // REQUIRED: systick for 1ms system timer
+  SysTick_Init();
+}
+void rtosStart()
+{
+  // REQUIRED: add code to call the first task to be run, restoring the preloaded context
+  _fn fn;
+  taskCurrent = rtosScheduler();
+  write_sp((uint32_t) (tcb[taskCurrent].sp));
+  fn = (_fn) tcb[taskCurrent].pid;
+  fn();
+  // Add code to initialize the SP with tcb[task_current].sp;
+  // Restore the stack to run the first process
 }
 int rtosScheduler()
 {
@@ -132,16 +143,7 @@ bool createProcess(_fn fn, int priority)
 void destroyProcess(_fn fn)
 {
 }
-void rtosStart()
-{
-  // REQUIRED: add code to call the first task to be run, restoring the preloaded context
-  _fn fn;
-  taskCurrent = rtosScheduler();
-  fn = (_fn) tcb[taskCurrent].pid;
-  fn();
-  // Add code to initialize the SP with tcb[task_current].sp;
-  // Restore the stack to run the first process
-}
+
 void init(void* p, int count)
 {
   s = p;
@@ -191,5 +193,10 @@ void post(void* pSemaphore)
 {
 }
 
+void SysTick_interrupt(void)
+{
+	if ((++taskCurrent) == taskCount)
+		taskCurrent = 0;
 
+}
 

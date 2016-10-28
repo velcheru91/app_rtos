@@ -1,1 +1,7 @@
 This vob consists of all the required documentation for the project.
+
+Major Fix: October 27, 2016:
+		Two task RTOS running without reset. Proper context switching is done without yield function.
+		Scheduler used works in round robin fashion. Need to add more tasks.
+		Functionality for thread states, semaphores are to be included.
+		Scheduler logic should be changed to priority based pre-emption.

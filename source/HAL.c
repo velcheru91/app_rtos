@@ -18,7 +18,7 @@
 #include <HAL.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_TASK_H_
-#include <task.h>
+#include <Thread.h>
 #endif
 // Initialize Hardware
 void SysTick_Init(void)
@@ -147,11 +147,11 @@ void initHw()
 	// enable internal pull-up for push button
 	    GPIO_PORTF_PUR_R = (HAL_GPIO_BIT4 | HAL_GPIO_BIT0);
 	// selecting alternate function on PF2 to be PWM
-	    GPIO_PORTF_AFSEL_R |= HAL_GPIO_BIT2;
+	    //GPIO_PORTF_AFSEL_R |= HAL_GPIO_BIT2;
 	// selecting analog mode on PF2
-	    GPIO_PORTF_AMSEL_R |= HAL_GPIO_BIT2;
+	    //GPIO_PORTF_AMSEL_R |= HAL_GPIO_BIT2;
 	// configure PF2 to be PWM output pin
-	    GPIO_PORTF_PCTL_R |= GPIO_PCTL_PF2_M1PWM6;
+	    //GPIO_PORTF_PCTL_R |= GPIO_PCTL_PF2_M1PWM6;
 	// enable LED
 	    GPIO_PORTF_DEN_R |= HAL_PORT_ENABLE;
 	// resetting the port
@@ -205,7 +205,7 @@ void initHw()
 	// enabling the PWM generator
 	    PWM1_3_CTL_R = PWM_3_CTL_DEBUG;
 	// enabling the PWM module
-	    PWM1_3_CTL_R |= PWM_3_CTL_ENABLE;
+	    //PWM1_3_CTL_R |= PWM_3_CTL_ENABLE;
 	    //PWM1_ENABLE_R |= PWM_ENABLE_PWM6EN;
 
 	// disabling PWM module before configuration as BLUE LED on BPAC

@@ -29,10 +29,10 @@
 #include <HAL.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_KERNEL_H_
-#include <kernel.h>
+#include <OS.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_TASK_H_
-#include <task.h>
+#include <Thread.h>
 #endif
 
 #define CRITICAL_SECTION (*((volatile uint32_t *)0xE000E010))
@@ -91,16 +91,17 @@ int main(void)
 	}
 	rtosInit(MODE_COOPERATIVE);
 	// Add required idle process
-//	ok =  createProcess(idle, 7);
+	ok =  createProcess(idle, 7);
+	ok =  createProcess(idle_2, 7);
 	ok =  createProcess(red_on, 7);
-	ok =  createProcess(red_off, 7);
+//	ok =  createProcess(red_off, 7);
 	// Add other processes
-//	ok &= createProcess(flash4Hz, 0);
-//	ok &= createProcess(lengthyFn, 6);
+	ok &= createProcess(flash4Hz, 0);
+////	ok &= createProcess(lengthyFn, 6);
 //	ok &= createProcess(oneshot, 3);
-//	ok &= createProcess(readKeys, 1);
-//	ok &= createProcess(debounce, 3);
-//	ok &= createProcess(uncooperative, 5);
+////	ok &= createProcess(readKeys, 1);
+////	ok &= createProcess(debounce, 3);
+////	ok &= createProcess(uncooperative, 5);
 
 	// Start up RTOS
 	if (ok)
@@ -108,10 +109,11 @@ int main(void)
 	else
 	  RED_LED = 1;
 
-    return 0;
+
     // don't delete this unreachable code
     // if a function is only called once in your code, it will be
     // accessed with two goto instructions instead of call-return,
     // so any stack-based code will not function correctly
-    yield(); sleep(0); wait(0); post(0);
+	OS_yield(); OS_sleep(0); OS_wait(0); OS_signal(0);
+    return 0;
 }

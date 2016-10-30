@@ -1,3 +1,4 @@
+
 /*
  * kernel.c
  *
@@ -22,7 +23,10 @@
 #include <HAL.h>
 #endif
 #ifndef APP_RTOS_INCLUDE_KERNEL_H_
-#include <kernel.h>
+#include <OS.h>
+#endif
+#ifndef APP_RTOS_INCLUDE_THREAD_H_
+#include <Thread.h>
 #endif
 //-----------------------------------------------------------------------------
 // 		  	 RTOS  Kernel Variables
@@ -31,6 +35,7 @@
 int rtosMode;              // mode
 uint8_t taskCurrent = 0;   // index of last dispatched task
 uint8_t taskCount = 0;     // total number of valid tasks
+
 
 // task control block
 struct _tcb
@@ -80,6 +85,7 @@ void rtosInit(int mode)
     tcb[i].pid = 0;
   }
   SysTick_Init();
+  Timer_Init();
 }
 void rtosStart()
 {
@@ -129,8 +135,10 @@ bool createProcess(_fn fn, int priority)
       tcb[i].state = STATE_READY;
       tcb[i].pid = fn;
       // REQUIRED: preload stack to look like the task had run before
-      stack[i][138] = 0xFF000101;
+      stack[i][137] = (uint32_t)tcb[i].pid;
+//      stack[i][138] = 0xFF000101;
       stack[i][139] = 0xFFFFFFF9;//(uint32_t)tcb[i].pid;
+//      stack[i][139] = (uint32_t)tcb[i].pid;
       stack[i][143] = 0xFF000101;
       stack[i][145] = (uint32_t)tcb[i].pid;
       stack[i][146] = (uint32_t)tcb[i].pid;
@@ -158,7 +166,7 @@ void init(void* p, int count)
   s->queueSize = 0;
 }
 // REQUIRED: modify this function to yield execution back to scheduler
-void yield()
+void OS_yield()
 {
 	// push registers, call scheduler, pop registers, return to new function
 	__asm("		PUSH  {LR}");
@@ -173,23 +181,68 @@ void yield()
 }
 // REQUIRED: modify this function to support 1ms system timer
 // execution yielded back to scheduler until time elapses
-void sleep(uint32_t tick)
+void OS_sleep(uint32_t tick)
 {
+	// push registers, call scheduler, pop registers, return to new function
+	tcb[taskCurrent].state = STATE_DELAYED;
+	tcb[taskCurrent].ticks = tick;
+	__asm("     POP   {R3, LR}");
+	__asm("     MOV   R6, #0x0000");
+	__asm("     MOVT  R6, #0x0100");
+	__asm("     PUSH  {R6}");
+	__asm("     MOV   R6, LR");
+	__asm("     SUB   R6, #0x01");
+	__asm("     PUSH  {R6}");
+	__asm("     PUSH  {LR, R12, R3, R2, R1, R0}");
+	__asm("     MOV   R6, #0xFFF9");
+	__asm("     MOVT  R6, #0xFFFF");
+	__asm("     PUSH  {R6}");
+	__asm("     PUSH  {R3}");
+	__asm("		PUSH  {LR}");
+	__asm(" 	PUSH  {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
+	__asm("   	PUSH  {R13}");
+	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
+	taskCurrent = rtosScheduler();
+	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
+	__asm(" 	POP   {R13}");
+	__asm(" 	POP   {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
+	__asm(" 	POP   {LR}");
+	__asm("     POP   {R3, LR}");
+	__asm("     POP   {R0, R1, R2, R3, R12, LR}");
+	__asm("     POP   {R6}");
+	__asm("     POP   {R5}");
+	__asm("     MOV   R5, #0x00");
+	__asm("     MSR   IPSR, R5");
+	__asm("     MOV   PC, R6");
 	// push registers, set state to delayed, store timeout, call scheduler, pop registers,
 	// return to new function (separate unrun or ready processing)
 }
 // REQUIRED: modify this function to wait a semaphore with priority inheritance
 // return if avail (separate unrun or ready processing), else yield to scheduler
-void wait(void* pSemaphore)
+void OS_wait(void* pSemaphore)
 {
 }
 // REQUIRED: modify this function to signal a semaphore is available
-void post(void* pSemaphore)
+void OS_signal(void* pSemaphore)
 {
 }
 
 void SysTick_interrupt(void)
 {
+	int i;
+	for (i = 0; i < MAX_TASKS; i++)
+			{
+				if (tcb[i].state == STATE_DELAYED)
+				{
+					tcb[i].ticks --;
+					if (tcb[i].ticks == 0)
+					{
+		    		tcb[i].state = STATE_READY;
+		    		//tcb[i].currentPriority = tcb[i].priority;
+					}
+				}
+			}
+	Timer_routine();
 //	// push registers, call scheduler, pop registers, return to new function
 	__asm("		PUSH  {LR}");
 	__asm(" 	PUSH  {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
@@ -200,6 +253,14 @@ void SysTick_interrupt(void)
 	__asm(" 	POP   {R13}");
 	__asm(" 	POP   {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
 	__asm(" 	POP   {LR}");
+//	__asm("     MOV   R6, #0x0F");
+//	__asm("     MSR   IPSR, R6");
+//	__asm("     ADD   SP, #0x08");
+//	__asm("     MOV   R3, #0x0201");
+//	__asm("     MOVT  R3, #0xFF00");
+//	__asm("     MOV   R6, #0xFFF9");
+//	__asm("     MOVT  R6, #0xFFFF");
+//	__asm("     MOV   PC, R6");
 //	__asm(" 	POP   {R3, LR}");
 }
 

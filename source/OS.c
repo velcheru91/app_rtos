@@ -28,6 +28,11 @@
 #ifndef APP_RTOS_INCLUDE_THREAD_H_
 #include <Thread.h>
 #endif
+
+//-----------------------------------------------------------------------------
+// 		  	 Declerations
+//-----------------------------------------------------------------------------
+
 //-----------------------------------------------------------------------------
 // 		  	 RTOS  Kernel Variables
 //-----------------------------------------------------------------------------
@@ -136,9 +141,7 @@ bool createProcess(_fn fn, int priority)
       tcb[i].pid = fn;
       // REQUIRED: preload stack to look like the task had run before
       stack[i][137] = (uint32_t)tcb[i].pid;
-//      stack[i][138] = 0xFF000101;
-      stack[i][139] = 0xFFFFFFF9;//(uint32_t)tcb[i].pid;
-//      stack[i][139] = (uint32_t)tcb[i].pid;
+      stack[i][139] = 0xFFFFFFF9;
       stack[i][143] = 0xFF000101;
       stack[i][145] = (uint32_t)tcb[i].pid;
       stack[i][146] = (uint32_t)tcb[i].pid;
@@ -183,6 +186,7 @@ void OS_yield()
 // execution yielded back to scheduler until time elapses
 void OS_sleep(uint32_t tick)
 {
+	__asm("     CPSID I");
 	// push registers, call scheduler, pop registers, return to new function
 	tcb[taskCurrent].state = STATE_DELAYED;
 	tcb[taskCurrent].ticks = tick;
@@ -200,11 +204,11 @@ void OS_sleep(uint32_t tick)
 	__asm("     PUSH  {R3}");
 	__asm("		PUSH  {LR}");
 	__asm(" 	PUSH  {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
-	__asm("   	PUSH  {R13}");
+//	__asm("   	PUSH  {R13}");
 	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
 	taskCurrent = rtosScheduler();
 	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
-	__asm(" 	POP   {R13}");
+//	__asm(" 	POP   {R13}");
 	__asm(" 	POP   {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
 	__asm(" 	POP   {LR}");
 	__asm("     POP   {R3, LR}");
@@ -213,6 +217,7 @@ void OS_sleep(uint32_t tick)
 	__asm("     POP   {R5}");
 	__asm("     MOV   R5, #0x00");
 	__asm("     MSR   IPSR, R5");
+	__asm("     CPSIE I");
 	__asm("     MOV   PC, R6");
 	// push registers, set state to delayed, store timeout, call scheduler, pop registers,
 	// return to new function (separate unrun or ready processing)
@@ -246,11 +251,11 @@ void SysTick_interrupt(void)
 //	// push registers, call scheduler, pop registers, return to new function
 	__asm("		PUSH  {LR}");
 	__asm(" 	PUSH  {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
-	__asm("   	PUSH  {R13}");
+//	__asm("   	PUSH  {R13}");
 	tcb[taskCurrent].sp=(void *)read_sp();	// saving stack pointer
 	taskCurrent = rtosScheduler();
 	write_sp((uint32_t) (tcb[taskCurrent].sp));// restoring stack pointer
-	__asm(" 	POP   {R13}");
+//	__asm(" 	POP   {R13}");
 	__asm(" 	POP   {R4, R5, R6, R7, R8, R9, R10, R11, R14}");
 	__asm(" 	POP   {LR}");
 //	__asm("     MOV   R6, #0x0F");
